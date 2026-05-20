@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Partner Collab — 双人协作台</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F8F7F4;
+    --surface: #FFFFFF;
+    --surface2: #F1EFE8;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --text: #1a1a1a;
+    --text2: #666;
+    --text3: #999;
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --green: #0F6E56;
+    --green-light: #E1F5EE;
+    --purple: #534AB7;
+    --purple-light: #EEEDFE;
+    --amber: #854F0B;
+    --amber-light: #FAEEDA;
+    --red: #A32D2D;
+    --red-light: #FCEBEB;
+    --gray: #5F5E5A;
+    --gray-light: #F1EFE8;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.04);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── Layout ── */
+  .app { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1rem;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .sidebar-logo {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sidebar-logo svg { flex-shrink: 0; }
+  .sidebar-sub { font-size: 12px; color: var(--text3); margin-bottom: 1.75rem; }
+
+  .nav-section { font-size: 11px; color: var(--text3); font-weight: 500; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px; margin-top: 1.25rem; }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text2);
+    transition: background .15s, color .15s;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--blue-light); color: var(--blue); font-weight: 500; }
+  .nav-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+  .tz-info { font-size: 11px; color: var(--text3); line-height: 1.8; }
+  .tz-row { display: flex; justify-content: space-between; }
+
+  .main { flex: 1; padding: 2rem 2.5rem; min-width: 0; overflow-x: hidden; }
+
+  /* ── Page header ── */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+  .page-title { font-size: 20px; font-weight: 600; }
+  .page-desc { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background .15s;
+    font-family: inherit;
+  }
+  .btn:hover { background: var(--surface2); }
+  .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .btn-primary:hover { background: #0C447C; border-color: #0C447C; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-icon { padding: 5px 8px; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 1.25rem; }
+  .tab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text2);
+    border: 1px solid transparent;
+    transition: all .15s;
+  }
+  .tab:hover { background: var(--surface2); }
+  .tab.active { background: var(--surface); border-color: var(--border2); color: var(--text); font-weight: 500; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .card-body { padding: 1.25rem; }
+
+  /* ── Kanban ── */
+  .kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .kanban-col { background: var(--surface2); border-radius: var(--radius); padding: 12px; }
+  .kanban-col-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .kanban-col-label { font-size: 13px; font-weight: 500; color: var(--text2); }
+  .kanban-badge {
+    font-size: 11px;
+    padding: 1px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  .project-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: box-shadow .15s, border-color .15s;
+  }
+  .project-card:hover { box-shadow: var(--shadow); border-color: var(--border2); }
+  .project-card-title { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .project-card-client { font-size: 11px; color: var(--text3); margin-bottom: 8px; }
+  .project-card-footer { display: flex; align-items: center; justify-content: space-between; }
+
+  .badge {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .avatar-group { display: flex; gap: 3px; }
+
+  .add-card-btn {
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text3);
+    padding: 7px;
+    border-radius: var(--radius-sm);
+    border: 1px dashed var(--border2);
+    cursor: pointer;
+    background: none;
+    font-family: inherit;
+    transition: background .15s, color .15s;
+    margin-top: 4px;
+  }
+  .add-card-btn:hover { background: var(--surface); color: var(--text2); }
+
+  /* ── Brainstorm ── */
+  .idea-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .idea-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    transition: box-shadow .15s, border-color .15s;
+    position: relative;
+  }
+  .idea-card:hover { box-shadow: var(--shadow); border-color: var(--border2); }
+  .idea-card-title { font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+  .idea-card-desc { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 10px; }
+  .idea-card-footer { display: flex; align-items: center; justify-content: space-between; }
+  .idea-source { font-size: 11px; color: var(--text3); }
+  .vote-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text2);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .vote-btn:hover, .vote-btn.voted { background: var(--amber-light); color: var(--amber); border-color: var(--amber); }
+  .idea-status-dot {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  /* ── Log ── */
+  .log-list { display: flex; flex-direction: column; gap: 12px; }
+  .log-entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+  }
+  .log-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .log-who { display: flex; align-items: center; gap: 8px; }
+  .log-date { font-size: 11px; color: var(--text3); }
+  .log-content { font-size: 13px; color: var(--text); line-height: 1.7; white-space: pre-wrap; }
+  .log-tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+
+  /* ── Decisions ── */
+  .decision-list { display: flex; flex-direction: column; gap: 10px; }
+  .decision-entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  .decision-date-col { text-align: center; flex-shrink: 0; width: 48px; }
+  .decision-month { font-size: 10px; color: var(--text3); text-transform: uppercase; }
+  .decision-day { font-size: 22px; font-weight: 600; line-height: 1.1; color: var(--text); }
+  .decision-body { flex: 1; }
+  .decision-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .decision-reason { font-size: 12px; color: var(--text2); line-height: 1.6; }
+  .decision-footer { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 1rem;
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 520px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem 0;
+    margin-bottom: 1rem;
+  }
+  .modal-title { font-size: 16px; font-weight: 600; }
+  .modal-close {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: var(--text2);
+    font-family: inherit;
+  }
+  .modal-close:hover { background: var(--surface2); }
+  .modal-body { padding: 0 1.5rem 1.5rem; }
+
+  .form-group { margin-bottom: 1rem; }
+  .form-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text2); }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: inherit;
+    background: var(--surface);
+    color: var(--text);
+    transition: border-color .15s;
+    outline: none;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--blue); }
+  .form-textarea { resize: vertical; min-height: 80px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 1.25rem; }
+
+  /* ── Empty state ── */
+  .empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text3);
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 0.75rem; opacity: .5; }
+  .empty-text { font-size: 14px; }
+
+  /* ── Misc ── */
+  .divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .gap-2 { gap: 8px; }
+  .ml-auto { margin-left: auto; }
+  .text-sm { font-size: 12px; }
+  .text-muted { color: var(--text3); }
+  .font-medium { font-weight: 500; }
+  .mb-1 { margin-bottom: 0.5rem; }
+  .mt-1 { margin-top: 0.5rem; }
+
+  /* ── Clock ── */
+  #clock-cn, #clock-us { font-size: 12px; font-weight: 500; color: var(--text2); }
+
+  /* ── Hidden ── */
+  [hidden] { display: none !important; }
+
+  @media (max-width: 900px) {
+    .kanban { grid-template-columns: 1fr 1fr; }
+    .sidebar { width: 180px; }
+    .main { padding: 1.25rem 1.5rem; }
+  }
+  @media (max-width: 640px) {
+    .app { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: static; flex-direction: row; flex-wrap: wrap; padding: 1rem; }
+    .kanban { grid-template-columns: 1fr; }
+    .main { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <rect x="2" y="2" width="7" height="7" rx="2" fill="#185FA5"/>
+        <rect x="11" y="2" width="7" height="7" rx="2" fill="#0F6E56"/>
+        <rect x="2" y="11" width="7" height="7" rx="2" fill="#534AB7"/>
+        <rect x="11" y="11" width="7" height="7" rx="2" fill="#854F0B"/>
+      </svg>
+      Partner Collab
+    </div>
+    <div class="sidebar-sub">双人协作台</div>
+
+    <div class="nav-section">工作区</div>
+    <div class="nav-item active" onclick="switchPage('kanban')">
+      <span class="nav-dot" style="background:var(--blue)"></span>
+      项目看板
+    </div>
+    <div class="nav-item" onclick="switchPage('brainstorm')">
+      <span class="nav-dot" style="background:var(--purple)"></span>
+      头脑风暴
+    </div>
+    <div class="nav-item" onclick="switchPage('log')">
+      <span class="nav-dot" style="background:var(--green)"></span>
+      信息同步日志
+    </div>
+    <div class="nav-item" onclick="switchPage('decisions')">
+      <span class="nav-dot" style="background:var(--amber)"></span>
+      决策记录
+    </div>
+
+    <div class="divider" style="margin:1rem 0"></div>
+
+    <div class="sidebar-footer">
+      <div class="tz-info">
+        <div class="tz-row"><span>🇨🇳 北京</span><span id="clock-cn">--:--</span></div>
+        <div class="tz-row"><span>🇺🇸 美西</span><span id="clock-us">--:--</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- ── Kanban Page ── -->
+    <div id="page-kanban">
+      <div class="page-header">
+        <div>
+          <div class="page-title">项目看板</div>
+          <div class="page-desc">追踪所有项目与需求的进度状态</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('project')">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          新建需求
+        </button>
+      </div>
+
+      <div class="kanban" id="kanban-board"></div>
+    </div>
+
+    <!-- ── Brainstorm Page ── -->
+    <div id="page-brainstorm" hidden>
+      <div class="page-header">
+        <div>
+          <div class="page-title">头脑风暴</div>
+          <div class="page-desc">捕捉商机与产品灵感，随时记录</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('idea')">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          新想法
+        </button>
+      </div>
+
+      <div class="tabs" id="idea-tabs">
+        <div class="tab active" onclick="filterIdeas('all')">全部</div>
+        <div class="tab" onclick="filterIdeas('new')">新想法</div>
+        <div class="tab" onclick="filterIdeas('eval')">评估中</div>
+        <div class="tab" onclick="filterIdeas('promoted')">已转化</div>
+        <div class="tab" onclick="filterIdeas('shelved')">已搁置</div>
+      </div>
+
+      <div class="idea-grid" id="idea-grid"></div>
+    </div>
+
+    <!-- ── Log Page ── -->
+    <div id="page-log" hidden>
+      <div class="page-header">
+        <div>
+          <div class="page-title">信息同步日志</div>
+          <div class="page-desc">异步同步双方动态，无需打扰对方</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('log')">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          写日志
+        </button>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="filterLogs('all', this)">全部</div>
+        <div class="tab" onclick="filterLogs('you', this)">锐（产品）</div>
+        <div class="tab" onclick="filterLogs('partner', this)">洋（销售）</div>
+        <div class="tab" onclick="filterLogs('weekly', this)">周报</div>
+      </div>
+
+      <div class="log-list" id="log-list"></div>
+    </div>
+
+    <!-- ── Decisions Page ── -->
+    <div id="page-decisions" hidden>
+      <div class="page-header">
+        <div>
+          <div class="page-title">决策记录</div>
+          <div class="page-desc">记录重要决定与背后原因，形成历史沉淀</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('decision')">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          记录决策
+        </button>
+      </div>
+
+      <div class="decision-list" id="decision-list"></div>
+    </div>
+  </main>
+</div>
+
+<!-- ── Modals ── -->
+<!-- Project Modal -->
+<div id="modal-project" class="modal-overlay" hidden onclick="closeModalOutside(event,'modal-project')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-project-title">新建需求</div>
+      <button class="modal-close" onclick="closeModal('project')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="project-edit-id">
+      <div class="form-group">
+        <label class="form-label">项目 / 需求名称</label>
+        <input class="form-input" id="project-name" placeholder="例：AI 报价助手">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">客户</label>
+          <input class="form-input" id="project-client" placeholder="客户名称或内部">
+        </div>
+        <div class="form-group">
+          <label class="form-label">行业</label>
+          <input class="form-input" id="project-industry" placeholder="行业（可选）">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">优先级</label>
+          <select class="form-select" id="project-priority">
+            <option value="normal">普通</option>
+            <option value="high">高优先</option>
+            <option value="urgent">紧急</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">负责人</label>
+          <select class="form-select" id="project-owner">
+            <option value="you">锐（产品）</option>
+            <option value="partner">洋（销售）</option>
+            <option value="both">共同</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">状态</label>
+        <select class="form-select" id="project-status">
+          <option value="pending">待确认</option>
+          <option value="dev">开发中</option>
+          <option value="test">测试中</option>
+          <option value="done">已交付</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">需求描述</label>
+        <textarea class="form-textarea" id="project-desc" placeholder="背景、目标、关键需求点…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">预计交付日期</label>
+        <input type="date" class="form-input" id="project-deadline">
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('project')">取消</button>
+        <button class="btn btn-primary" onclick="saveProject()">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Idea Modal -->
+<div id="modal-idea" class="modal-overlay" hidden onclick="closeModalOutside(event,'modal-idea')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-idea-title">新想法</div>
+      <button class="modal-close" onclick="closeModal('idea')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="idea-edit-id">
+      <div class="form-group">
+        <label class="form-label">想法标题</label>
+        <input class="form-input" id="idea-title" placeholder="一句话描述这个想法">
+      </div>
+      <div class="form-group">
+        <label class="form-label">详细描述</label>
+        <textarea class="form-textarea" id="idea-desc" placeholder="背景、价值、可能的方向…"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">来源</label>
+          <select class="form-select" id="idea-source">
+            <option value="client">客户反馈</option>
+            <option value="market">市场观察</option>
+            <option value="internal">内部灵感</option>
+            <option value="competitor">竞品分析</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">状态</label>
+          <select class="form-select" id="idea-status">
+            <option value="new">新想法</option>
+            <option value="eval">评估中</option>
+            <option value="promoted">已转化为项目</option>
+            <option value="shelved">已搁置</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">提出人</label>
+        <select class="form-select" id="idea-author">
+          <option value="you">锐（产品）</option>
+          <option value="partner">洋（销售）</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('idea')">取消</button>
+        <button class="btn btn-primary" onclick="saveIdea()">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Log Modal -->
+<div id="modal-log" class="modal-overlay" hidden onclick="closeModalOutside(event,'modal-log')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">写日志</div>
+      <button class="modal-close" onclick="closeModal('log')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">作者</label>
+          <select class="form-select" id="log-author">
+            <option value="you">锐（产品）</option>
+            <option value="partner">洋（销售）</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">类型</label>
+          <select class="form-select" id="log-type">
+            <option value="daily">日报</option>
+            <option value="weekly">周报</option>
+            <option value="update">进展更新</option>
+            <option value="blocker">阻碍 / 求助</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">内容</label>
+        <textarea class="form-textarea" id="log-content" placeholder="今天做了什么 / 遇到什么问题 / 下步计划…" style="min-height:120px"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('log')">取消</button>
+        <button class="btn btn-primary" onclick="saveLog()">发布</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Decision Modal -->
+<div id="modal-decision" class="modal-overlay" hidden onclick="closeModalOutside(event,'modal-decision')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">记录决策</div>
+      <button class="modal-close" onclick="closeModal('decision')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">决策内容</label>
+        <input class="form-input" id="decision-title" placeholder="例：暂停 B 端产品线，专注 C 端">
+      </div>
+      <div class="form-group">
+        <label class="form-label">背景 / 原因</label>
+        <textarea class="form-textarea" id="decision-reason" placeholder="为什么做出这个决定？有哪些考量？"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">决策人</label>
+          <select class="form-select" id="decision-owner">
+            <option value="both">双方共同</option>
+            <option value="you">锐（产品）</option>
+            <option value="partner">洋（销售）</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">类别</label>
+          <select class="form-select" id="decision-category">
+            <option value="strategy">战略方向</option>
+            <option value="product">产品决策</option>
+            <option value="biz">商务决策</option>
+            <option value="ops">运营调整</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('decision')">取消</button>
+        <button class="btn btn-primary" onclick="saveDecision()">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Project Detail Modal -->
+<div id="modal-detail" class="modal-overlay" hidden onclick="closeModalOutside(event,'modal-detail')">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title" id="detail-title"></div>
+      <button class="modal-close" onclick="closeModal('detail')">×</button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+  </div>
+</div>
+
+<script>
+// ── Data store (localStorage) ──
+const DB_KEY = 'partner_collab_v1';
+function load() {
+  try { return JSON.parse(localStorage.getItem(DB_KEY)) || defaultData(); } catch { return defaultData(); }
+}
+function save(data) { localStorage.setItem(DB_KEY, JSON.stringify(data)); }
+function defaultData() {
+  return {
+    projects: [
+      { id: uid(), name: 'AI 报价助手', client: '张总', industry: '制造业', priority: 'high', owner: 'you', status: 'pending', desc: '客户希望自动化报价流程，减少人工计算时间', deadline: '', createdAt: new Date().toISOString() },
+      { id: uid(), name: 'API 接入文档', client: '科技园区', industry: '科技', priority: 'urgent', owner: 'partner', status: 'dev', desc: '需要完整的 API 对接文档和示例代码', deadline: '', createdAt: new Date().toISOString() },
+      { id: uid(), name: '智能搜索模块', client: '电商平台', industry: '零售', priority: 'normal', owner: 'partner', status: 'test', desc: '基于语义搜索的商品推荐引擎', deadline: '', createdAt: new Date().toISOString() },
+      { id: uid(), name: '官网改版', client: '品牌方', industry: '品牌', priority: 'normal', owner: 'both', status: 'done', desc: '全站视觉升级，提升转化率', deadline: '', createdAt: new Date().toISOString() },
+    ],
+    ideas: [
+      { id: uid(), title: '多语言客服机器人', desc: '可以同时支持中英文的智能客服，针对跨国客户', source: 'client', status: 'eval', author: 'you', votes: 1, votedBy: [], createdAt: new Date().toISOString() },
+      { id: uid(), title: '竞品价格追踪工具', desc: '自动抓取竞争对手产品价格变动并推送预警', source: 'market', status: 'new', author: 'partner', votes: 0, votedBy: [], createdAt: new Date().toISOString() },
+    ],
+    logs: [
+      { id: uid(), author: 'you', type: 'daily', content: '今天拜访了 3 个客户，张总对 AI 报价助手很感兴趣，需要下周给 Demo。\n下步：准备演示材料', createdAt: new Date().toISOString() },
+      { id: uid(), author: 'partner', type: 'update', content: 'API 文档初稿完成，还需要补充错误码说明。\n预计明天可以发给科技园区审核。', createdAt: new Date().toISOString() },    ],
+    decisions: [
+      { id: uid(), title: '优先攻占制造业客户', reason: '制造业客户预算充裕且付费意愿强，决定 Q3 集中资源在这一行业', owner: 'both', category: 'strategy', createdAt: new Date().toISOString() },
+    ]
+  };
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+let db = load();
+let currentPage = 'kanban';
+let currentIdeaFilter = 'all';
+let currentLogFilter = 'all';
+
+// ── Navigation ──
+function switchPage(page) {
+  ['kanban','brainstorm','log','decisions'].forEach(p => {
+    document.getElementById('page-' + p).hidden = (p !== page);
+  });
+  document.querySelectorAll('.nav-item').forEach((el, i) => {
+    el.classList.toggle('active', ['kanban','brainstorm','log','decisions'][i] === page);
+  });
+  currentPage = page;
+  render();
+}
+
+// ── Render ──
+function render() {
+  if (currentPage === 'kanban') renderKanban();
+  if (currentPage === 'brainstorm') renderIdeas();
+  if (currentPage === 'log') renderLogs();
+  if (currentPage === 'decisions') renderDecisions();
+}
+
+// Priority helpers
+const PRIORITY = {
+  normal: { label: '普通', bg: '#EAF3DE', color: '#3B6D11' },
+  high:   { label: '高优先', bg: '#FAEEDA', color: '#854F0B' },
+  urgent: { label: '紧急', bg: '#FCEBEB', color: '#A32D2D' },
+};
+const STATUS_COLS = [
+  { key: 'pending', label: '待确认', badge_bg: '#EEEDFE', badge_color: '#534AB7' },
+  { key: 'dev',     label: '开发中', badge_bg: '#E6F1FB', badge_color: '#185FA5' },
+  { key: 'test',    label: '测试中', badge_bg: '#EAF3DE', badge_color: '#3B6D11' },
+  { key: 'done',    label: '已交付', badge_bg: '#F1EFE8', badge_color: '#5F5E5A' },
+];
+const OWNER_AVATAR = {
+  you:     { label: '锐', bg: '#E6F1FB', color: '#185FA5' },
+  partner: { label: '洋', bg: '#E1F5EE', color: '#0F6E56' },
+  both:    null,
+};
+
+function avatarHTML(owner) {
+  if (owner === 'both') {
+    return `<div class="avatar-group">
+      <div class="avatar" style="background:#E6F1FB;color:#185FA5">锐</div>
+      <div class="avatar" style="background:#E1F5EE;color:#0F6E56">洋</div>
+    </div>`;
+  }
+  const a = OWNER_AVATAR[owner] || OWNER_AVATAR.you;
+  return `<div class="avatar" style="background:${a.bg};color:${a.color}">${a.label}</div>`;
+}
+
+// ── Kanban ──
+function renderKanban() {
+  const board = document.getElementById('kanban-board');
+  board.innerHTML = STATUS_COLS.map(col => {
+    const items = db.projects.filter(p => p.status === col.key);
+    const cardsHTML = items.map(p => {
+      const pri = PRIORITY[p.priority] || PRIORITY.normal;
+      return `<div class="project-card" onclick="showProjectDetail('${p.id}')">
+        <div class="project-card-title">${esc(p.name)}</div>
+        <div class="project-card-client">${esc(p.client)}${p.industry ? ' · ' + esc(p.industry) : ''}</div>
+        <div class="project-card-footer">
+          <span class="badge" style="background:${pri.bg};color:${pri.color}">${pri.label}</span>
+          ${avatarHTML(p.owner)}
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="kanban-col">
+      <div class="kanban-col-header">
+        <span class="kanban-col-label">${col.label}</span>
+        <span class="kanban-badge" style="background:${col.badge_bg};color:${col.badge_color}">${items.length}</span>
+      </div>
+      ${cardsHTML}
+      <button class="add-card-btn" onclick="openModal('project');document.getElementById('project-status').value='${col.key}'">+ 新增</button>
+    </div>`;
+  }).join('');
+}
+
+// ── Project Detail ──
+function showProjectDetail(id) {
+  const p = db.projects.find(x => x.id === id);
+  if (!p) return;
+  const pri = PRIORITY[p.priority] || PRIORITY.normal;
+  const col = STATUS_COLS.find(c => c.key === p.status) || STATUS_COLS[0];
+  const created = new Date(p.createdAt).toLocaleDateString('zh-CN');
+  document.getElementById('detail-title').textContent = p.name;
+  document.getElementById('detail-body').innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
+      <span class="badge" style="background:${pri.bg};color:${pri.color};font-size:12px;padding:3px 10px">${pri.label}</span>
+      <span class="badge" style="background:${col.badge_bg};color:${col.badge_color};font-size:12px;padding:3px 10px">${col.label}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">
+      <div><div class="form-label">客户</div><div style="font-size:14px">${esc(p.client)}</div></div>
+      <div><div class="form-label">行业</div><div style="font-size:14px">${esc(p.industry || '—')}</div></div>
+      <div><div class="form-label">负责人</div><div style="font-size:14px">${p.owner === 'both' ? '双方' : p.owner === 'you' ? '锐' : '洋'}</div></div>
+      <div><div class="form-label">创建日期</div><div style="font-size:14px">${created}</div></div>
+      ${p.deadline ? `<div><div class="form-label">交付日期</div><div style="font-size:14px">${p.deadline}</div></div>` : ''}
+    </div>
+    ${p.desc ? `<div class="form-label">需求描述</div><div style="font-size:13px;color:var(--text2);line-height:1.8;white-space:pre-wrap;margin-bottom:1rem">${esc(p.desc)}</div>` : ''}
+    <div class="modal-actions" style="padding-top:0">
+      <button class="btn btn-sm" onclick="deleteProject('${p.id}')">删除</button>
+      <button class="btn btn-sm btn-primary" onclick="editProject('${p.id}')">编辑</button>
+    </div>
+  `;
+  document.getElementById('modal-detail').hidden = false;
+}
+
+function deleteProject(id) {
+  if (!confirm('确定删除这个项目？')) return;
+  db.projects = db.projects.filter(p => p.id !== id);
+  save(db);
+  closeModal('detail');
+  renderKanban();
+}
+
+function editProject(id) {
+  closeModal('detail');
+  openModal('project', id);
+}
+
+// ── Ideas ──
+const IDEA_STATUS = {
+  new:      { label: '新想法', color: '#534AB7', bg: '#EEEDFE', dot: '#534AB7' },
+  eval:     { label: '评估中', color: '#185FA5', bg: '#E6F1FB', dot: '#185FA5' },
+  promoted: { label: '已转化', color: '#3B6D11', bg: '#EAF3DE', dot: '#3B6D11' },
+  shelved:  { label: '已搁置', color: '#5F5E5A', bg: '#F1EFE8', dot: '#B4B2A9' },
+};
+const IDEA_SOURCE = { client: '客户反馈', market: '市场观察', internal: '内部灵感', competitor: '竞品分析' };
+
+function filterIdeas(filter) {
+  currentIdeaFilter = filter;
+  document.querySelectorAll('#idea-tabs .tab').forEach((el, i) => {
+    el.classList.toggle('active', ['all','new','eval','promoted','shelved'][i] === filter);
+  });
+  renderIdeas();
+}
+
+function renderIdeas() {
+  const grid = document.getElementById('idea-grid');
+  let items = db.ideas;
+  if (currentIdeaFilter !== 'all') items = items.filter(i => i.status === currentIdeaFilter);
+  if (!items.length) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">💡</div><div class="empty-text">还没有想法，点击"新想法"开始记录</div></div>`;
+    return;
+  }
+  grid.innerHTML = items.map(idea => {
+    const st = IDEA_STATUS[idea.status] || IDEA_STATUS.new;
+    const a = OWNER_AVATAR[idea.author] || OWNER_AVATAR.you;
+    return `<div class="idea-card" onclick="openModal('idea','${idea.id}')">
+      <div class="idea-status-dot" style="background:${st.dot}"></div>
+      <div class="idea-card-title">${esc(idea.title)}</div>
+      <div class="idea-card-desc">${esc(idea.desc || '')}</div>
+      <div class="idea-card-footer">
+        <div>
+          <span class="badge" style="background:${st.bg};color:${st.color};font-size:10px">${st.label}</span>
+          <span class="idea-source">${IDEA_SOURCE[idea.source] || ''}</span>
+        </div>
+        <button class="vote-btn ${(idea.votedBy||[]).length > 0 ? 'voted' : ''}" onclick="event.stopPropagation();voteIdea('${idea.id}')">
+          ★ ${idea.votes || 0}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function voteIdea(id) {
+  const idea = db.ideas.find(i => i.id === id);
+  if (!idea) return;
+  idea.votes = (idea.votes || 0) + 1;
+  idea.votedBy = ['user'];
+  save(db);
+  renderIdeas();
+}
+
+// ── Logs ──
+const LOG_TYPE = {
+  daily:   { label: '日报', bg: '#E6F1FB', color: '#185FA5' },
+  weekly:  { label: '周报', bg: '#EAF3DE', color: '#3B6D11' },
+  update:  { label: '进展', bg: '#EEEDFE', color: '#534AB7' },
+  blocker: { label: '阻碍', bg: '#FCEBEB', color: '#A32D2D' },
+};
+
+function filterLogs(filter, el) {
+  currentLogFilter = filter;
+  document.querySelectorAll('#page-log .tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderLogs();
+}
+
+function renderLogs() {
+  const list = document.getElementById('log-list');
+  let items = [...db.logs].reverse();
+  if (currentLogFilter === 'you') items = items.filter(l => l.author === 'you');
+  else if (currentLogFilter === 'partner') items = items.filter(l => l.author === 'partner');
+  else if (currentLogFilter === 'weekly') items = items.filter(l => l.type === 'weekly');
+  if (!items.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">暂无日志，点击"写日志"开始同步</div></div>`;
+    return;
+  }
+  list.innerHTML = items.map(log => {
+    const lt = LOG_TYPE[log.type] || LOG_TYPE.daily;
+    const a = log.author === 'partner'
+      ? { label: '洋（销售）', av: '洋', bg: '#E1F5EE', color: '#0F6E56' }
+      : { label: '锐（产品）', av: '锐', bg: '#E6F1FB', color: '#185FA5' };
+    const date = new Date(log.createdAt);
+    const dateStr = date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return `<div class="log-entry">
+      <div class="log-header">
+        <div class="log-who">
+          <div class="avatar" style="background:${a.bg};color:${a.color};width:28px;height:28px;font-size:11px">${a.av}</div>
+          <span style="font-size:13px;font-weight:500">${a.label}</span>
+          <span class="log-tag" style="background:${lt.bg};color:${lt.color}">${lt.label}</span>
+        </div>
+        <span class="log-date">${dateStr}</span>
+      </div>
+      <div class="log-content">${esc(log.content)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Decisions ──
+const DECISION_CAT = {
+  strategy: { label: '战略方向', bg: '#FCEBEB', color: '#A32D2D' },
+  product:  { label: '产品决策', bg: '#E6F1FB', color: '#185FA5' },
+  biz:      { label: '商务决策', bg: '#EAF3DE', color: '#3B6D11' },
+  ops:      { label: '运营调整', bg: '#FAEEDA', color: '#854F0B' },
+};
+
+function renderDecisions() {
+  const list = document.getElementById('decision-list');
+  const items = [...db.decisions].reverse();
+  if (!items.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">📌</div><div class="empty-text">暂无决策记录，重要决定请务必记录下来</div></div>`;
+    return;
+  }
+  list.innerHTML = items.map(d => {
+    const cat = DECISION_CAT[d.category] || DECISION_CAT.strategy;
+    const date = new Date(d.createdAt);
+    const ownerLabel = d.owner === 'both' ? '双方' : d.owner === 'you' ? '锐' : '洋';
+    return `<div class="decision-entry">
+      <div class="decision-date-col">
+        <div class="decision-month">${date.toLocaleDateString('en-US',{month:'short'})}</div>
+        <div class="decision-day">${date.getDate()}</div>
+      </div>
+      <div class="decision-body">
+        <div class="decision-title">${esc(d.title)}</div>
+        ${d.reason ? `<div class="decision-reason">${esc(d.reason)}</div>` : ''}
+        <div class="decision-footer">
+          <span class="badge" style="background:${cat.bg};color:${cat.color};font-size:11px;padding:2px 8px">${cat.label}</span>
+          <span class="text-sm text-muted">决策人：${ownerLabel}</span>
+          <button class="btn btn-sm" style="margin-left:auto;font-size:11px" onclick="deleteDecision('${d.id}')">删除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function deleteDecision(id) {
+  if (!confirm('确定删除这条决策记录？')) return;
+  db.decisions = db.decisions.filter(d => d.id !== id);
+  save(db);
+  renderDecisions();
+}
+
+// ── Modals ──
+function openModal(type, editId) {
+  if (type === 'project') {
+    document.getElementById('project-edit-id').value = editId || '';
+    document.getElementById('modal-project-title').textContent = editId ? '编辑需求' : '新建需求';
+    if (editId) {
+      const p = db.projects.find(x => x.id === editId);
+      if (p) {
+        document.getElementById('project-name').value = p.name;
+        document.getElementById('project-client').value = p.client;
+        document.getElementById('project-industry').value = p.industry || '';
+        document.getElementById('project-priority').value = p.priority;
+        document.getElementById('project-owner').value = p.owner;
+        document.getElementById('project-status').value = p.status;
+        document.getElementById('project-desc').value = p.desc || '';
+        document.getElementById('project-deadline').value = p.deadline || '';
+      }
+    } else {
+      ['project-name','project-client','project-industry','project-desc'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('project-priority').value = 'normal';
+      document.getElementById('project-owner').value = 'you';
+      document.getElementById('project-status').value = 'pending';
+      document.getElementById('project-deadline').value = '';
+    }
+  } else if (type === 'idea') {
+    document.getElementById('idea-edit-id').value = editId || '';
+    document.getElementById('modal-idea-title').textContent = editId ? '编辑想法' : '新想法';
+    if (editId) {
+      const idea = db.ideas.find(x => x.id === editId);
+      if (idea) {
+        document.getElementById('idea-title').value = idea.title;
+        document.getElementById('idea-desc').value = idea.desc || '';
+        document.getElementById('idea-source').value = idea.source;
+        document.getElementById('idea-status').value = idea.status;
+        document.getElementById('idea-author').value = idea.author;
+      }
+    } else {
+      ['idea-title','idea-desc'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('idea-source').value = 'client';
+      document.getElementById('idea-status').value = 'new';
+      document.getElementById('idea-author').value = 'you';
+    }
+  } else if (type === 'log') {
+    document.getElementById('log-author').value = 'you';
+    document.getElementById('log-type').value = 'daily';
+    document.getElementById('log-content').value = '';
+  } else if (type === 'decision') {
+    ['decision-title','decision-reason'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('decision-owner').value = 'both';
+    document.getElementById('decision-category').value = 'strategy';
+  }
+  document.getElementById('modal-' + type).hidden = false;
+}
+
+function closeModal(type) { document.getElementById('modal-' + type).hidden = true; }
+function closeModalOutside(e, id) { if (e.target === document.getElementById(id)) closeModal(id.replace('modal-','')); }
+
+function saveProject() {
+  const name = document.getElementById('project-name').value.trim();
+  if (!name) { alert('请填写项目名称'); return; }
+  const editId = document.getElementById('project-edit-id').value;
+  const data = {
+    name,
+    client: document.getElementById('project-client').value.trim(),
+    industry: document.getElementById('project-industry').value.trim(),
+    priority: document.getElementById('project-priority').value,
+    owner: document.getElementById('project-owner').value,
+    status: document.getElementById('project-status').value,
+    desc: document.getElementById('project-desc').value.trim(),
+    deadline: document.getElementById('project-deadline').value,
+  };
+  if (editId) {
+    const idx = db.projects.findIndex(p => p.id === editId);
+    if (idx >= 0) db.projects[idx] = { ...db.projects[idx], ...data };
+  } else {
+    db.projects.push({ id: uid(), createdAt: new Date().toISOString(), ...data });
+  }
+  save(db);
+  closeModal('project');
+  renderKanban();
+}
+
+function saveIdea() {
+  const title = document.getElementById('idea-title').value.trim();
+  if (!title) { alert('请填写想法标题'); return; }
+  const editId = document.getElementById('idea-edit-id').value;
+  const data = {
+    title,
+    desc: document.getElementById('idea-desc').value.trim(),
+    source: document.getElementById('idea-source').value,
+    status: document.getElementById('idea-status').value,
+    author: document.getElementById('idea-author').value,
+  };
+  if (editId) {
+    const idx = db.ideas.findIndex(i => i.id === editId);
+    if (idx >= 0) db.ideas[idx] = { ...db.ideas[idx], ...data };
+  } else {
+    db.ideas.push({ id: uid(), votes: 0, votedBy: [], createdAt: new Date().toISOString(), ...data });
+  }
+  save(db);
+  closeModal('idea');
+  renderIdeas();
+}
+
+function saveLog() {
+  const content = document.getElementById('log-content').value.trim();
+  if (!content) { alert('请填写内容'); return; }
+  db.logs.push({
+    id: uid(),
+    author: document.getElementById('log-author').value,
+    type: document.getElementById('log-type').value,
+    content,
+    createdAt: new Date().toISOString(),
+  });
+  save(db);
+  closeModal('log');
+  renderLogs();
+}
+
+function saveDecision() {
+  const title = document.getElementById('decision-title').value.trim();
+  if (!title) { alert('请填写决策内容'); return; }
+  db.decisions.push({
+    id: uid(),
+    title,
+    reason: document.getElementById('decision-reason').value.trim(),
+    owner: document.getElementById('decision-owner').value,
+    category: document.getElementById('decision-category').value,
+    createdAt: new Date().toISOString(),
+  });
+  save(db);
+  closeModal('decision');
+  renderDecisions();
+}
+
+// ── Escape ──
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Clock ──
+function updateClocks() {
+  const now = new Date();
+  const cnTime = now.toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit' });
+  const usTime = now.toLocaleTimeString('en-US', { timeZone: 'America/Los_Angeles', hour: '2-digit', minute: '2-digit', hour12: false });
+  document.getElementById('clock-cn').textContent = cnTime;
+  document.getElementById('clock-us').textContent = usTime;
+}
+updateClocks();
+setInterval(updateClocks, 30000);
+
+// ── Init ──
+render();
+</script>
+</body>
+</html>
