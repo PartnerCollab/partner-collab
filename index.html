@@ -373,8 +373,72 @@
   /* ── Clock ── */
   #clock-cn, #clock-us { font-size: 12px; font-weight: 500; color: var(--text2); }
 
+  /* ── Sync status ── */
+  .sync-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-bottom: 0.75rem;
+  }
+  .sync-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+
   /* ── Hidden ── */
   [hidden] { display: none !important; }
+
+  /* ── Login ── */
+  #login-screen {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999;
+  }
+  .login-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+  }
+  .login-logo {
+    font-size: 22px; font-weight: 700; margin-bottom: 4px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .login-sub { font-size: 13px; color: var(--text3); margin-bottom: 2rem; }
+  .login-card {
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    margin-bottom: 0.75rem;
+  }
+  .login-card:hover { border-color: var(--blue); background: var(--blue-light); }
+  .login-card.selected { border-color: var(--blue); background: var(--blue-light); }
+  .login-card-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+    font-size: 16px; font-weight: 600;
+  }
+  .login-card-sub { font-size: 12px; color: var(--text3); margin-left: 32px; }
+  .login-card-loc { font-size: 11px; color: var(--text3); margin-left: 32px; }
+  .login-btn {
+    width: 100%; margin-top: 1.25rem; padding: 10px;
+    background: var(--blue); color: #fff; border: none;
+    border-radius: var(--radius-sm); font-size: 15px;
+    font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: background .15s;
+  }
+  .login-btn:hover { background: #0C447C; }
+  .login-btn:disabled { background: var(--gray-light); color: var(--text3); cursor: not-allowed; }
+  .login-note { font-size: 11px; color: var(--text3); margin-top: 1rem; line-height: 1.6; }
 
   @media (max-width: 900px) {
     .kanban { grid-template-columns: 1fr 1fr; }
@@ -391,7 +455,48 @@
 </head>
 <body>
 
-<div class="app">
+<!-- ── Login Screen ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <svg width="28" height="28" viewBox="0 0 20 20" fill="none">
+        <rect x="2" y="2" width="7" height="7" rx="2" fill="#185FA5"/>
+        <rect x="11" y="2" width="7" height="7" rx="2" fill="#0F6E56"/>
+        <rect x="2" y="11" width="7" height="7" rx="2" fill="#534AB7"/>
+        <rect x="11" y="11" width="7" height="7" rx="2" fill="#854F0B"/>
+      </svg>
+      Partner Collab
+    </div>
+    <div class="login-sub">双人协作台 — 请选择你的身份</div>
+
+    <div class="login-card" id="login-yang" onclick="selectUser('yang')">
+      <div class="login-card-header">
+        <div class="avatar" style="background:#E1F5EE;color:#0F6E56;width:28px;height:28px;font-size:13px">洋</div>
+        洋 — 销售开拓
+      </div>
+      <div class="login-card-loc">🇨🇳 中国</div>
+    </div>
+
+    <div class="login-card" id="login-rui" onclick="selectUser('rui')">
+      <div class="login-card-header">
+        <div class="avatar" style="background:#E6F1FB;color:#185FA5;width:28px;height:28px;font-size:13px">锐</div>
+        锐 — 产品开发
+      </div>
+      <div class="login-card-loc">🇺🇸 美国</div>
+    </div>
+
+    <button class="login-btn" id="login-btn" disabled onclick="confirmLogin()">
+      进入协作台
+    </button>
+    <div class="login-note">
+      数据将通过 Firebase 实时同步，双方操作即时可见。<br>
+      身份仅本地存储，不会上传到服务器。
+    </div>
+  </div>
+</div>
+
+<!-- ── Main App ── -->
+<div class="app" id="main-app" hidden>
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-logo">
@@ -404,6 +509,12 @@
       Partner Collab
     </div>
     <div class="sidebar-sub">双人协作台</div>
+
+    <!-- Sync status -->
+    <div class="sync-badge" id="sync-badge">
+      <div class="sync-dot" id="sync-dot" style="background:#ccc"></div>
+      <span id="sync-text">连接中…</span>
+    </div>
 
     <div class="nav-section">工作区</div>
     <div class="nav-item active" onclick="switchPage('kanban')">
@@ -425,10 +536,16 @@
 
     <div class="divider" style="margin:1rem 0"></div>
 
+    <!-- Current user info -->
+    <div style="margin-bottom:1rem;padding:8px 10px;background:var(--surface2);border-radius:8px">
+      <div id="current-user-label" style="font-size:13px;font-weight:500"></div>
+      <div id="current-user-role" style="font-size:11px;color:var(--text3)"></div>
+    </div>
+
     <div class="sidebar-footer">
       <div class="tz-info">
-        <div class="tz-row"><span>🇨🇳 北京</span><span id="clock-cn">--:--</span></div>
-        <div class="tz-row"><span>🇺🇸 美西</span><span id="clock-us">--:--</span></div>
+        <div class="tz-row"><span>🇨🇳 北京（洋）</span><span id="clock-cn">--:--</span></div>
+        <div class="tz-row"><span>🇺🇸 美西（锐）</span><span id="clock-us">--:--</span></div>
       </div>
     </div>
   </aside>
@@ -440,14 +557,13 @@
       <div class="page-header">
         <div>
           <div class="page-title">项目看板</div>
-          <div class="page-desc">追踪所有项目与需求的进度状态</div>
+          <div class="page-desc">追踪所有项目与需求的进度状态 · 数据实时同步</div>
         </div>
         <button class="btn btn-primary" onclick="openModal('project')">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           新建需求
         </button>
       </div>
-
       <div class="kanban" id="kanban-board"></div>
     </div>
 
@@ -456,14 +572,13 @@
       <div class="page-header">
         <div>
           <div class="page-title">头脑风暴</div>
-          <div class="page-desc">捕捉商机与产品灵感，随时记录</div>
+          <div class="page-desc">捕捉商机与产品灵感，支持投票评估</div>
         </div>
         <button class="btn btn-primary" onclick="openModal('idea')">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           新想法
         </button>
       </div>
-
       <div class="tabs" id="idea-tabs">
         <div class="tab active" onclick="filterIdeas('all')">全部</div>
         <div class="tab" onclick="filterIdeas('new')">新想法</div>
@@ -471,7 +586,6 @@
         <div class="tab" onclick="filterIdeas('promoted')">已转化</div>
         <div class="tab" onclick="filterIdeas('shelved')">已搁置</div>
       </div>
-
       <div class="idea-grid" id="idea-grid"></div>
     </div>
 
@@ -487,14 +601,12 @@
           写日志
         </button>
       </div>
-
       <div class="tabs">
         <div class="tab active" onclick="filterLogs('all', this)">全部</div>
-        <div class="tab" onclick="filterLogs('you', this)">锐（产品）</div>
-        <div class="tab" onclick="filterLogs('partner', this)">洋（销售）</div>
+        <div class="tab" onclick="filterLogs('yang', this)">洋（销售）</div>
+        <div class="tab" onclick="filterLogs('rui', this)">锐（产品）</div>
         <div class="tab" onclick="filterLogs('weekly', this)">周报</div>
       </div>
-
       <div class="log-list" id="log-list"></div>
     </div>
 
@@ -510,7 +622,6 @@
           记录决策
         </button>
       </div>
-
       <div class="decision-list" id="decision-list"></div>
     </div>
   </main>
@@ -552,8 +663,8 @@
         <div class="form-group">
           <label class="form-label">负责人</label>
           <select class="form-select" id="project-owner">
-            <option value="you">锐（产品）</option>
-            <option value="partner">洋（销售）</option>
+            <option value="yang">洋（销售）</option>
+            <option value="rui">锐（产品）</option>
             <option value="both">共同</option>
           </select>
         </div>
@@ -623,8 +734,8 @@
       <div class="form-group">
         <label class="form-label">提出人</label>
         <select class="form-select" id="idea-author">
-          <option value="you">锐（产品）</option>
-          <option value="partner">洋（销售）</option>
+          <option value="yang">洋（销售）</option>
+          <option value="rui">锐（产品）</option>
         </select>
       </div>
       <div class="modal-actions">
@@ -647,8 +758,8 @@
         <div class="form-group">
           <label class="form-label">作者</label>
           <select class="form-select" id="log-author">
-            <option value="you">锐（产品）</option>
-            <option value="partner">洋（销售）</option>
+            <option value="yang">洋（销售）</option>
+            <option value="rui">锐（产品）</option>
           </select>
         </div>
         <div class="form-group">
@@ -694,8 +805,8 @@
           <label class="form-label">决策人</label>
           <select class="form-select" id="decision-owner">
             <option value="both">双方共同</option>
-            <option value="you">锐（产品）</option>
-            <option value="partner">洋（销售）</option>
+            <option value="yang">洋（销售）</option>
+            <option value="rui">锐（产品）</option>
           </select>
         </div>
         <div class="form-group">
@@ -727,36 +838,170 @@
   </div>
 </div>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 <script>
-// ── Data store (localStorage) ──
-const DB_KEY = 'partner_collab_v1';
-function load() {
-  try { return JSON.parse(localStorage.getItem(DB_KEY)) || defaultData(); } catch { return defaultData(); }
+// ═══════════════════════════════════════════════════════
+// FIREBASE CONFIG — 请替换为你自己的配置
+// ═══════════════════════════════════════════════════════
+// 创建 Firebase 项目：https://console.firebase.google.com/
+// 1. 添加 Web 应用
+// 2. 复制以下配置，粘贴到下方 firebaseConfig 对象中
+// 3. 在 Firebase Console → Firestore Database → 创建数据库（测试模式即可）
+const firebaseConfig = {
+  apiKey: "AIzaSyDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  authDomain: "your-project-id.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project-id.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:abc123def456"
+};
+// ═══════════════════════════════════════════════════════
+
+// Init Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const COLLECTION = 'partner_collab_v2';
+
+// ── User identity ──
+let currentUser = localStorage.getItem('pc_user'); // 'yang' | 'rui'
+let selectedUser = null;
+
+const USER_INFO = {
+  yang: { label: '洋', full: '洋（销售）', role: '销售开拓', loc: '中国', bg: '#E1F5EE', color: '#0F6E56' },
+  rui: { label: '锐', full: '锐（产品）', role: '产品开发', loc: '美国', bg: '#E6F1FB', color: '#185FA5' },
+};
+
+function selectUser(user) {
+  selectedUser = user;
+  document.querySelectorAll('.login-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('login-' + user).classList.add('selected');
+  document.getElementById('login-btn').disabled = false;
 }
-function save(data) { localStorage.setItem(DB_KEY, JSON.stringify(data)); }
-function defaultData() {
+
+function confirmLogin() {
+  if (!selectedUser) return;
+  currentUser = selectedUser;
+  localStorage.setItem('pc_user', currentUser);
+  document.getElementById('login-screen').hidden = true;
+  document.getElementById('main-app').hidden = false;
+  document.getElementById('current-user-label').textContent = USER_INFO[currentUser].label;
+  document.getElementById('current-user-role').textContent = USER_INFO[currentUser].role + ' · ' + USER_INFO[currentUser].loc;
+  // Default author selects current user
+  initApp();
+}
+
+// Auto-login if already set
+if (currentUser) {
+  document.getElementById('login-screen').hidden = true;
+  document.getElementById('main-app').hidden = false;
+  if (USER_INFO[currentUser]) {
+    document.getElementById('current-user-label').textContent = USER_INFO[currentUser].label;
+    document.getElementById('current-user-role').textContent = USER_INFO[currentUser].role + ' · ' + USER_INFO[currentUser].loc;
+  }
+}
+
+// ── Sync status ──
+function setSyncStatus(status, text) {
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-text');
+  const colors = { connecting: '#f59e0b', connected: '#22c55e', error: '#ef4444', offline: '#9ca3af' };
+  dot.style.background = colors[status] || '#ccc';
+  txt.textContent = text;
+}
+
+// ── Firestore sync ──
+let unsubProjects, unsubIdeas, unsubLogs, unsubDecisions;
+let remoteProjects = [], remoteIdeas = [], remoteLogs = [], remoteDecisions = [];
+let localPending = {}; // { type: {id: data} } — pending local writes during offline
+
+async function initApp() {
+  setSyncStatus('connecting', '连接中…');
+
+  // Seed default data if collection is empty
+  const snap = await db.collection(COLLECTION).doc('data').get();
+  if (!snap.exists) {
+    const defaults = buildDefaultData();
+    await db.collection(COLLECTION).doc('data').set(defaults);
+  }
+
+  // Real-time listeners
+  const docRef = db.collection(COLLECTION).doc('data');
+
+  unsubProjects = docRef.onSnapshot(snap => {
+    if (snap.exists) {
+      const d = snap.data();
+      remoteProjects = d.projects || [];
+      remoteIdeas = d.ideas || [];
+      remoteLogs = d.logs || [];
+      remoteDecisions = d.decisions || [];
+      setSyncStatus('connected', '已同步');
+      render();
+    }
+  }, err => {
+    console.error('Firestore error:', err);
+    setSyncStatus('error', '同步失败');
+  });
+
+  // Also listen to log changes for new entries
+  unsubLogs = docRef.onSnapshot(snap => {
+    if (snap.exists) {
+      const newLogs = snap.data().logs || [];
+      if (newLogs.length !== remoteLogs.length) {
+        remoteLogs = newLogs;
+        renderLogs();
+      }
+    }
+  });
+}
+
+// ── Data helpers ──
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function buildDefaultData() {
   return {
     projects: [
-      { id: uid(), name: 'AI 报价助手', client: '张总', industry: '制造业', priority: 'high', owner: 'you', status: 'pending', desc: '客户希望自动化报价流程，减少人工计算时间', deadline: '', createdAt: new Date().toISOString() },
-      { id: uid(), name: 'API 接入文档', client: '科技园区', industry: '科技', priority: 'urgent', owner: 'partner', status: 'dev', desc: '需要完整的 API 对接文档和示例代码', deadline: '', createdAt: new Date().toISOString() },
-      { id: uid(), name: '智能搜索模块', client: '电商平台', industry: '零售', priority: 'normal', owner: 'partner', status: 'test', desc: '基于语义搜索的商品推荐引擎', deadline: '', createdAt: new Date().toISOString() },
+      { id: uid(), name: 'AI 报价助手', client: '张总', industry: '制造业', priority: 'high', owner: 'yang', status: 'pending', desc: '客户希望自动化报价流程，减少人工计算时间', deadline: '', createdAt: new Date().toISOString() },
+      { id: uid(), name: 'API 接入文档', client: '科技园区', industry: '科技', priority: 'urgent', owner: 'rui', status: 'dev', desc: '需要完整的 API 对接文档和示例代码', deadline: '', createdAt: new Date().toISOString() },
+      { id: uid(), name: '智能搜索模块', client: '电商平台', industry: '零售', priority: 'normal', owner: 'yang', status: 'test', desc: '基于语义搜索的商品推荐引擎', deadline: '', createdAt: new Date().toISOString() },
       { id: uid(), name: '官网改版', client: '品牌方', industry: '品牌', priority: 'normal', owner: 'both', status: 'done', desc: '全站视觉升级，提升转化率', deadline: '', createdAt: new Date().toISOString() },
     ],
     ideas: [
-      { id: uid(), title: '多语言客服机器人', desc: '可以同时支持中英文的智能客服，针对跨国客户', source: 'client', status: 'eval', author: 'you', votes: 1, votedBy: [], createdAt: new Date().toISOString() },
-      { id: uid(), title: '竞品价格追踪工具', desc: '自动抓取竞争对手产品价格变动并推送预警', source: 'market', status: 'new', author: 'partner', votes: 0, votedBy: [], createdAt: new Date().toISOString() },
+      { id: uid(), title: '多语言客服机器人', desc: '可以同时支持中英文的智能客服，针对跨国客户', source: 'client', status: 'eval', author: 'rui', votes: 1, votedBy: [], createdAt: new Date().toISOString() },
+      { id: uid(), title: '竞品价格追踪工具', desc: '自动抓取竞争对手产品价格变动并推送预警', source: 'market', status: 'new', author: 'yang', votes: 0, votedBy: [], createdAt: new Date().toISOString() },
     ],
     logs: [
-      { id: uid(), author: 'you', type: 'daily', content: '今天拜访了 3 个客户，张总对 AI 报价助手很感兴趣，需要下周给 Demo。\n下步：准备演示材料', createdAt: new Date().toISOString() },
-      { id: uid(), author: 'partner', type: 'update', content: 'API 文档初稿完成，还需要补充错误码说明。\n预计明天可以发给科技园区审核。', createdAt: new Date().toISOString() },    ],
+      { id: uid(), author: 'yang', type: 'daily', content: '今天拜访了 3 个客户，张总对 AI 报价助手很感兴趣，需要下周给 Demo。\n下步：准备演示材料', createdAt: new Date().toISOString() },
+      { id: uid(), author: 'rui', type: 'update', content: 'API 文档初稿完成，还需要补充错误码说明。\n预计明天可以发给科技园区审核。', createdAt: new Date().toISOString() },
+    ],
     decisions: [
       { id: uid(), title: '优先攻占制造业客户', reason: '制造业客户预算充裕且付费意愿强，决定 Q3 集中资源在这一行业', owner: 'both', category: 'strategy', createdAt: new Date().toISOString() },
     ]
   };
 }
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
-let db = load();
+// Firestore write helper
+async function saveToFirestore(data) {
+  try {
+    await db.collection(COLLECTION).doc('data').set(data, { merge: true });
+  } catch (e) {
+    console.error('Save error:', e);
+    alert('保存失败，请检查网络连接');
+  }
+}
+
+function getCurrentData() {
+  return {
+    projects: remoteProjects,
+    ideas: remoteIdeas,
+    logs: remoteLogs,
+    decisions: remoteDecisions,
+  };
+}
+
+// ── State ──
 let currentPage = 'kanban';
 let currentIdeaFilter = 'all';
 let currentLogFilter = 'all';
@@ -781,7 +1026,7 @@ function render() {
   if (currentPage === 'decisions') renderDecisions();
 }
 
-// Priority helpers
+// ── Helpers ──
 const PRIORITY = {
   normal: { label: '普通', bg: '#EAF3DE', color: '#3B6D11' },
   high:   { label: '高优先', bg: '#FAEEDA', color: '#854F0B' },
@@ -794,19 +1039,19 @@ const STATUS_COLS = [
   { key: 'done',    label: '已交付', badge_bg: '#F1EFE8', badge_color: '#5F5E5A' },
 ];
 const OWNER_AVATAR = {
-  you:     { label: '锐', bg: '#E6F1FB', color: '#185FA5' },
-  partner: { label: '洋', bg: '#E1F5EE', color: '#0F6E56' },
-  both:    null,
+  yang:  { label: '洋', bg: '#E1F5EE', color: '#0F6E56' },
+  rui:   { label: '锐', bg: '#E6F1FB', color: '#185FA5' },
+  both:  null,
 };
 
 function avatarHTML(owner) {
   if (owner === 'both') {
     return `<div class="avatar-group">
-      <div class="avatar" style="background:#E6F1FB;color:#185FA5">锐</div>
       <div class="avatar" style="background:#E1F5EE;color:#0F6E56">洋</div>
+      <div class="avatar" style="background:#E6F1FB;color:#185FA5">锐</div>
     </div>`;
   }
-  const a = OWNER_AVATAR[owner] || OWNER_AVATAR.you;
+  const a = OWNER_AVATAR[owner] || OWNER_AVATAR.yang;
   return `<div class="avatar" style="background:${a.bg};color:${a.color}">${a.label}</div>`;
 }
 
@@ -814,7 +1059,7 @@ function avatarHTML(owner) {
 function renderKanban() {
   const board = document.getElementById('kanban-board');
   board.innerHTML = STATUS_COLS.map(col => {
-    const items = db.projects.filter(p => p.status === col.key);
+    const items = remoteProjects.filter(p => p.status === col.key);
     const cardsHTML = items.map(p => {
       const pri = PRIORITY[p.priority] || PRIORITY.normal;
       return `<div class="project-card" onclick="showProjectDetail('${p.id}')">
@@ -839,11 +1084,12 @@ function renderKanban() {
 
 // ── Project Detail ──
 function showProjectDetail(id) {
-  const p = db.projects.find(x => x.id === id);
+  const p = remoteProjects.find(x => x.id === id);
   if (!p) return;
   const pri = PRIORITY[p.priority] || PRIORITY.normal;
   const col = STATUS_COLS.find(c => c.key === p.status) || STATUS_COLS[0];
   const created = new Date(p.createdAt).toLocaleDateString('zh-CN');
+  const ownerMap = { yang: '洋', rui: '锐', both: '双方' };
   document.getElementById('detail-title').textContent = p.name;
   document.getElementById('detail-body').innerHTML = `
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
@@ -853,7 +1099,7 @@ function showProjectDetail(id) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">
       <div><div class="form-label">客户</div><div style="font-size:14px">${esc(p.client)}</div></div>
       <div><div class="form-label">行业</div><div style="font-size:14px">${esc(p.industry || '—')}</div></div>
-      <div><div class="form-label">负责人</div><div style="font-size:14px">${p.owner === 'both' ? '双方' : p.owner === 'you' ? '锐' : '洋'}</div></div>
+      <div><div class="form-label">负责人</div><div style="font-size:14px">${ownerMap[p.owner] || p.owner}</div></div>
       <div><div class="form-label">创建日期</div><div style="font-size:14px">${created}</div></div>
       ${p.deadline ? `<div><div class="form-label">交付日期</div><div style="font-size:14px">${p.deadline}</div></div>` : ''}
     </div>
@@ -866,17 +1112,12 @@ function showProjectDetail(id) {
   document.getElementById('modal-detail').hidden = false;
 }
 
-function deleteProject(id) {
+async function deleteProject(id) {
   if (!confirm('确定删除这个项目？')) return;
-  db.projects = db.projects.filter(p => p.id !== id);
-  save(db);
+  remoteProjects = remoteProjects.filter(p => p.id !== id);
+  await saveToFirestore(getCurrentData());
   closeModal('detail');
   renderKanban();
-}
-
-function editProject(id) {
-  closeModal('detail');
-  openModal('project', id);
 }
 
 // ── Ideas ──
@@ -887,6 +1128,10 @@ const IDEA_STATUS = {
   shelved:  { label: '已搁置', color: '#5F5E5A', bg: '#F1EFE8', dot: '#B4B2A9' },
 };
 const IDEA_SOURCE = { client: '客户反馈', market: '市场观察', internal: '内部灵感', competitor: '竞品分析' };
+const AUTHOR_AVATAR = {
+  yang: { label: '洋', bg: '#E1F5EE', color: '#0F6E56', full: '洋（销售）' },
+  rui:  { label: '锐', bg: '#E6F1FB', color: '#185FA5', full: '锐（产品）' },
+};
 
 function filterIdeas(filter) {
   currentIdeaFilter = filter;
@@ -898,7 +1143,7 @@ function filterIdeas(filter) {
 
 function renderIdeas() {
   const grid = document.getElementById('idea-grid');
-  let items = db.ideas;
+  let items = remoteIdeas;
   if (currentIdeaFilter !== 'all') items = items.filter(i => i.status === currentIdeaFilter);
   if (!items.length) {
     grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">💡</div><div class="empty-text">还没有想法，点击"新想法"开始记录</div></div>`;
@@ -906,7 +1151,7 @@ function renderIdeas() {
   }
   grid.innerHTML = items.map(idea => {
     const st = IDEA_STATUS[idea.status] || IDEA_STATUS.new;
-    const a = OWNER_AVATAR[idea.author] || OWNER_AVATAR.you;
+    const a = AUTHOR_AVATAR[idea.author] || AUTHOR_AVATAR.yang;
     return `<div class="idea-card" onclick="openModal('idea','${idea.id}')">
       <div class="idea-status-dot" style="background:${st.dot}"></div>
       <div class="idea-card-title">${esc(idea.title)}</div>
@@ -915,8 +1160,9 @@ function renderIdeas() {
         <div>
           <span class="badge" style="background:${st.bg};color:${st.color};font-size:10px">${st.label}</span>
           <span class="idea-source">${IDEA_SOURCE[idea.source] || ''}</span>
+          <span class="idea-source" style="margin-left:4px">${a.full}</span>
         </div>
-        <button class="vote-btn ${(idea.votedBy||[]).length > 0 ? 'voted' : ''}" onclick="event.stopPropagation();voteIdea('${idea.id}')">
+        <button class="vote-btn ${(idea.votedBy||[]).includes(currentUser) ? 'voted' : ''}" onclick="event.stopPropagation();voteIdea('${idea.id}')">
           ★ ${idea.votes || 0}
         </button>
       </div>
@@ -924,12 +1170,13 @@ function renderIdeas() {
   }).join('');
 }
 
-function voteIdea(id) {
-  const idea = db.ideas.find(i => i.id === id);
+async function voteIdea(id) {
+  const idea = remoteIdeas.find(i => i.id === id);
   if (!idea) return;
+  if ((idea.votedBy||[]).includes(currentUser)) return;
   idea.votes = (idea.votes || 0) + 1;
-  idea.votedBy = ['user'];
-  save(db);
+  idea.votedBy = [...(idea.votedBy||[]), currentUser];
+  await saveToFirestore({ ideas: remoteIdeas });
   renderIdeas();
 }
 
@@ -950,9 +1197,9 @@ function filterLogs(filter, el) {
 
 function renderLogs() {
   const list = document.getElementById('log-list');
-  let items = [...db.logs].reverse();
-  if (currentLogFilter === 'you') items = items.filter(l => l.author === 'you');
-  else if (currentLogFilter === 'partner') items = items.filter(l => l.author === 'partner');
+  let items = [...remoteLogs].reverse();
+  if (currentLogFilter === 'yang') items = items.filter(l => l.author === 'yang');
+  else if (currentLogFilter === 'rui') items = items.filter(l => l.author === 'rui');
   else if (currentLogFilter === 'weekly') items = items.filter(l => l.type === 'weekly');
   if (!items.length) {
     list.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">暂无日志，点击"写日志"开始同步</div></div>`;
@@ -960,16 +1207,14 @@ function renderLogs() {
   }
   list.innerHTML = items.map(log => {
     const lt = LOG_TYPE[log.type] || LOG_TYPE.daily;
-    const a = log.author === 'partner'
-      ? { label: '洋（销售）', av: '洋', bg: '#E1F5EE', color: '#0F6E56' }
-      : { label: '锐（产品）', av: '锐', bg: '#E6F1FB', color: '#185FA5' };
+    const a = AUTHOR_AVATAR[log.author] || AUTHOR_AVATAR.yang;
     const date = new Date(log.createdAt);
     const dateStr = date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     return `<div class="log-entry">
       <div class="log-header">
         <div class="log-who">
-          <div class="avatar" style="background:${a.bg};color:${a.color};width:28px;height:28px;font-size:11px">${a.av}</div>
-          <span style="font-size:13px;font-weight:500">${a.label}</span>
+          <div class="avatar" style="background:${a.bg};color:${a.color};width:28px;height:28px;font-size:11px">${a.label}</div>
+          <span style="font-size:13px;font-weight:500">${a.full}</span>
           <span class="log-tag" style="background:${lt.bg};color:${lt.color}">${lt.label}</span>
         </div>
         <span class="log-date">${dateStr}</span>
@@ -986,10 +1231,11 @@ const DECISION_CAT = {
   biz:      { label: '商务决策', bg: '#EAF3DE', color: '#3B6D11' },
   ops:      { label: '运营调整', bg: '#FAEEDA', color: '#854F0B' },
 };
+const DEC_OWNER_MAP = { yang: '洋', rui: '锐', both: '双方' };
 
 function renderDecisions() {
   const list = document.getElementById('decision-list');
-  const items = [...db.decisions].reverse();
+  const items = [...remoteDecisions].reverse();
   if (!items.length) {
     list.innerHTML = `<div class="empty"><div class="empty-icon">📌</div><div class="empty-text">暂无决策记录，重要决定请务必记录下来</div></div>`;
     return;
@@ -997,7 +1243,6 @@ function renderDecisions() {
   list.innerHTML = items.map(d => {
     const cat = DECISION_CAT[d.category] || DECISION_CAT.strategy;
     const date = new Date(d.createdAt);
-    const ownerLabel = d.owner === 'both' ? '双方' : d.owner === 'you' ? '锐' : '洋';
     return `<div class="decision-entry">
       <div class="decision-date-col">
         <div class="decision-month">${date.toLocaleDateString('en-US',{month:'short'})}</div>
@@ -1008,7 +1253,7 @@ function renderDecisions() {
         ${d.reason ? `<div class="decision-reason">${esc(d.reason)}</div>` : ''}
         <div class="decision-footer">
           <span class="badge" style="background:${cat.bg};color:${cat.color};font-size:11px;padding:2px 8px">${cat.label}</span>
-          <span class="text-sm text-muted">决策人：${ownerLabel}</span>
+          <span class="text-sm text-muted">决策人：${DEC_OWNER_MAP[d.owner] || d.owner}</span>
           <button class="btn btn-sm" style="margin-left:auto;font-size:11px" onclick="deleteDecision('${d.id}')">删除</button>
         </div>
       </div>
@@ -1016,10 +1261,10 @@ function renderDecisions() {
   }).join('');
 }
 
-function deleteDecision(id) {
+async function deleteDecision(id) {
   if (!confirm('确定删除这条决策记录？')) return;
-  db.decisions = db.decisions.filter(d => d.id !== id);
-  save(db);
+  remoteDecisions = remoteDecisions.filter(d => d.id !== id);
+  await saveToFirestore({ decisions: remoteDecisions });
   renderDecisions();
 }
 
@@ -1029,7 +1274,7 @@ function openModal(type, editId) {
     document.getElementById('project-edit-id').value = editId || '';
     document.getElementById('modal-project-title').textContent = editId ? '编辑需求' : '新建需求';
     if (editId) {
-      const p = db.projects.find(x => x.id === editId);
+      const p = remoteProjects.find(x => x.id === editId);
       if (p) {
         document.getElementById('project-name').value = p.name;
         document.getElementById('project-client').value = p.client;
@@ -1043,7 +1288,7 @@ function openModal(type, editId) {
     } else {
       ['project-name','project-client','project-industry','project-desc'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('project-priority').value = 'normal';
-      document.getElementById('project-owner').value = 'you';
+      document.getElementById('project-owner').value = currentUser;
       document.getElementById('project-status').value = 'pending';
       document.getElementById('project-deadline').value = '';
     }
@@ -1051,7 +1296,7 @@ function openModal(type, editId) {
     document.getElementById('idea-edit-id').value = editId || '';
     document.getElementById('modal-idea-title').textContent = editId ? '编辑想法' : '新想法';
     if (editId) {
-      const idea = db.ideas.find(x => x.id === editId);
+      const idea = remoteIdeas.find(x => x.id === editId);
       if (idea) {
         document.getElementById('idea-title').value = idea.title;
         document.getElementById('idea-desc').value = idea.desc || '';
@@ -1063,10 +1308,10 @@ function openModal(type, editId) {
       ['idea-title','idea-desc'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('idea-source').value = 'client';
       document.getElementById('idea-status').value = 'new';
-      document.getElementById('idea-author').value = 'you';
+      document.getElementById('idea-author').value = currentUser;
     }
   } else if (type === 'log') {
-    document.getElementById('log-author').value = 'you';
+    document.getElementById('log-author').value = currentUser;
     document.getElementById('log-type').value = 'daily';
     document.getElementById('log-content').value = '';
   } else if (type === 'decision') {
@@ -1080,7 +1325,13 @@ function openModal(type, editId) {
 function closeModal(type) { document.getElementById('modal-' + type).hidden = true; }
 function closeModalOutside(e, id) { if (e.target === document.getElementById(id)) closeModal(id.replace('modal-','')); }
 
-function saveProject() {
+function editProject(id) {
+  closeModal('detail');
+  openModal('project', id);
+}
+
+// ── Save actions ──
+async function saveProject() {
   const name = document.getElementById('project-name').value.trim();
   if (!name) { alert('请填写项目名称'); return; }
   const editId = document.getElementById('project-edit-id').value;
@@ -1095,17 +1346,17 @@ function saveProject() {
     deadline: document.getElementById('project-deadline').value,
   };
   if (editId) {
-    const idx = db.projects.findIndex(p => p.id === editId);
-    if (idx >= 0) db.projects[idx] = { ...db.projects[idx], ...data };
+    const idx = remoteProjects.findIndex(p => p.id === editId);
+    if (idx >= 0) remoteProjects[idx] = { ...remoteProjects[idx], ...data };
   } else {
-    db.projects.push({ id: uid(), createdAt: new Date().toISOString(), ...data });
+    remoteProjects.push({ id: uid(), createdAt: new Date().toISOString(), ...data });
   }
-  save(db);
+  await saveToFirestore({ projects: remoteProjects });
   closeModal('project');
   renderKanban();
 }
 
-function saveIdea() {
+async function saveIdea() {
   const title = document.getElementById('idea-title').value.trim();
   if (!title) { alert('请填写想法标题'); return; }
   const editId = document.getElementById('idea-edit-id').value;
@@ -1117,35 +1368,35 @@ function saveIdea() {
     author: document.getElementById('idea-author').value,
   };
   if (editId) {
-    const idx = db.ideas.findIndex(i => i.id === editId);
-    if (idx >= 0) db.ideas[idx] = { ...db.ideas[idx], ...data };
+    const idx = remoteIdeas.findIndex(i => i.id === editId);
+    if (idx >= 0) remoteIdeas[idx] = { ...remoteIdeas[idx], ...data };
   } else {
-    db.ideas.push({ id: uid(), votes: 0, votedBy: [], createdAt: new Date().toISOString(), ...data });
+    remoteIdeas.push({ id: uid(), votes: 0, votedBy: [], createdAt: new Date().toISOString(), ...data });
   }
-  save(db);
+  await saveToFirestore({ ideas: remoteIdeas });
   closeModal('idea');
   renderIdeas();
 }
 
-function saveLog() {
+async function saveLog() {
   const content = document.getElementById('log-content').value.trim();
   if (!content) { alert('请填写内容'); return; }
-  db.logs.push({
+  remoteLogs.push({
     id: uid(),
     author: document.getElementById('log-author').value,
     type: document.getElementById('log-type').value,
     content,
     createdAt: new Date().toISOString(),
   });
-  save(db);
+  await saveToFirestore({ logs: remoteLogs });
   closeModal('log');
   renderLogs();
 }
 
-function saveDecision() {
+async function saveDecision() {
   const title = document.getElementById('decision-title').value.trim();
   if (!title) { alert('请填写决策内容'); return; }
-  db.decisions.push({
+  remoteDecisions.push({
     id: uid(),
     title,
     reason: document.getElementById('decision-reason').value.trim(),
@@ -1153,7 +1404,7 @@ function saveDecision() {
     category: document.getElementById('decision-category').value,
     createdAt: new Date().toISOString(),
   });
-  save(db);
+  await saveToFirestore({ decisions: remoteDecisions });
   closeModal('decision');
   renderDecisions();
 }
@@ -1175,7 +1426,7 @@ updateClocks();
 setInterval(updateClocks, 30000);
 
 // ── Init ──
-render();
+if (currentUser) initApp();
 </script>
 </body>
 </html>
